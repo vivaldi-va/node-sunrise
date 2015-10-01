@@ -23,9 +23,36 @@ function getColourFromKelvin(temp) {
 	});
 }
 
+function getReachableLightIds(lights) {
+	var lightIdArr = [];
+	for(var l in lights) {
+		if(lights[l].state.reachable) {
+			lightIdArr.push(l);
+		}
+	}
+
+	return lightIdArr;
+}
+
+function getBrightnessAtTime() {
+	var a = config.brightness.max / (Math.log1p(config.rise_duration));
+
+	return function(t) {
+		return Math.floor(a * Math.log1p(t));
+	}
+}
+
+function getTempAtTime() {
+	var a = config.temp.max / Math.pow(config.rise_duration, 2);
+
+	return function(t) {
+		return Math.floor(a * Math.pow(t, 2) + config.temp.min);
+	}
+}
+
 hue.nupnpSearch(function(err, result) {
 	if (err) throw err;
-	displayBridges(result);
+	//displayBridges(result);
 });
 
 var api = new HueApi(config.hub_address, config.user_id);
@@ -33,28 +60,34 @@ var api = new HueApi(config.hub_address, config.user_id);
 api.getFullState(function(err, config) {
 	if(err) throw err;
 
-	console.log(config.sensors[1].state);
+	//console.log(config);
+	for(var l in config.lights) {
+		//console.log(config.lights[l].state);
+	}
 });
 
 function rise() {
-	api.lights(function(err, lights) {
+	api.getFullState(function(err, state) {
 		if(err) throw err;
 
 		var interval;
 		var lightState;
 		var i = 1;
-		var lightIds = [1, 3];
+		var lightIds = getReachableLightIds(state.lights);
 		var temp = config.temp.min;
-		var tempMax = config.temp.max;
-		var brightness = 0;
+		var brightness = 1;
+		var tempCalc = getTempAtTime();
+		var brightnessCalc = getBrightnessAtTime();
 		var intervalTemp = temp;
 		var hue = getColourFromKelvin(temp);
 
 		lightState = hueLightState.create().on();
+
 		interval = setInterval(function () {
-			intervalTemp = Math.floor(temp + ((tempMax - temp) / (config.rise_duration)) * i);
+			intervalTemp = tempCalc(i);
+			brightness = brightnessCalc(i);
+
 			hue = getColourFromKelvin(intervalTemp);
-			brightness = brightness <= 255 ? Math.floor(i * 0.5) : 255;
 			lightState.rgb(hue).bri(brightness);
 
 			console.log("\n");
@@ -62,6 +95,7 @@ function rise() {
 			console.log("time: " + i + " seconds");
 			console.log("temp: " + intervalTemp + "k");
 			console.log("brightness: " + brightness);
+			console.log("light: ", lightState);
 
 			for (var l in lightIds) {
 				api.setLightState(lightIds[l], lightState, function (err, lights) {
@@ -69,7 +103,7 @@ function rise() {
 				});
 			}
 
-			if (intervalTemp >= tempMax) {
+			if (i >= config.rise_duration) {
 				clearInterval(interval);
 			}
 
