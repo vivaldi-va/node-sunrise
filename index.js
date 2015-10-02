@@ -35,15 +35,15 @@ function getReachableLightIds(lights) {
 }
 
 function getBrightnessAtTime() {
-	var a = config.brightness.max / (Math.log1p(config.rise_duration));
+	var a = config.brightness.max / (Math.log2(config.rise_duration));
 
 	return function(t) {
-		return Math.floor(a * Math.log1p(t));
+		return Math.floor(a * Math.log2(t));
 	}
 }
 
 function getTempAtTime() {
-	var a = config.temp.max / Math.pow(config.rise_duration, 2);
+	var a = (config.temp.max - config.temp.min) / Math.pow(config.rise_duration, 2);
 
 	return function(t) {
 		return Math.floor(a * Math.pow(t, 2) + config.temp.min);
