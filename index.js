@@ -11,9 +11,7 @@ var moment = require('moment');
 
 var config = require('./config/env');
 
-var displayBridges = function(bridge) {
-	console.log("Hue Bridges Found: " + JSON.stringify(bridge));
-};
+var api;
 
 function getColourFromKelvin(temp) {
 	return chroma.kelvin(temp)._rgb.map(function(c, i) {
@@ -52,19 +50,12 @@ function getTempAtTime() {
 
 hue.nupnpSearch(function(err, result) {
 	if (err) throw err;
-	//displayBridges(result);
+	console.log("bridges", result);
+
+	api = new HueApi(result[0].ipaddress, config.user_id);
+	rise();
 });
 
-var api = new HueApi(config.hub_address, config.user_id);
-
-api.getFullState(function(err, config) {
-	if(err) throw err;
-
-	//console.log(config);
-	for(var l in config.lights) {
-		//console.log(config.lights[l].state);
-	}
-});
 
 function rise() {
 	api.getFullState(function(err, state) {
@@ -105,6 +96,7 @@ function rise() {
 
 			if (i >= config.rise_duration) {
 				clearInterval(interval);
+				process.exit();
 			}
 
 			i += 1;
@@ -121,6 +113,4 @@ var checkShouldStart = setInterval(function() {
 		clearInterval(checkShouldStart)
 	}
 }, config.check_interval);
-
-rise();
 
