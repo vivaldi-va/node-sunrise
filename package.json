@@ -13,6 +13,7 @@
     "express": "^4.13.3",
     "lodash": "^3.10.1",
     "moment": "^2.10.6",
-    "node-hue-api": "^1.1.2"
+    "node-hue-api": "^1.1.2",
+    "node-schedule": "^0.2.9"
   }
 }

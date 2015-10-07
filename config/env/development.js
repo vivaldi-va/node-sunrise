@@ -21,5 +21,6 @@ module.exports = {
 		"friday": {hour: 7, minute: 30},
 		"saturday": {hour: 7, minute: 30},
 		"sunday": {hour: 7, minute: 30}
-	}
+	},
+	"cron": "* * * * *" // every minute
 };

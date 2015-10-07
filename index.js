@@ -8,6 +8,7 @@ var HueApi = hue.HueApi;
 var hueLightState = hue.lightState;
 var chroma = require('chroma-js');
 var moment = require('moment');
+var schedule = require('node-schedule');
 
 var config = require('./config/env');
 
@@ -48,14 +49,19 @@ function getTempAtTime() {
 	}
 }
 
-hue.nupnpSearch(function(err, result) {
-	if (err) throw err;
-	console.log("bridges", result);
+/**
+ * initialize the simulation by finding the bridge and connecting to it,
+ * then running `rise()`
+ */
+function init() {
+	hue.nupnpSearch(function(err, result) {
+		if (err) throw err;
+		console.log("bridges", result);
 
-	api = new HueApi(result[0].ipaddress, config.user_id);
-	rise();
-});
-
+		api = new HueApi(result[0].ipaddress, config.user_id);
+		rise();
+	});
+}
 
 function rise() {
 	api.getFullState(function(err, state) {
@@ -96,7 +102,6 @@ function rise() {
 
 			if (i >= config.rise_duration) {
 				clearInterval(interval);
-				process.exit();
 			}
 
 			i += 1;
@@ -104,13 +109,6 @@ function rise() {
 	});
 }
 
-var checkShouldStart = setInterval(function() {
-	var isInTimeFrame = moment().isBetween(moment({hour: 7, minute: 30}), moment({hour: 8, minute: 0}));
-	console.log(isInTimeFrame);
 
-	if(isInTimeFrame) {
-		rise();
-		clearInterval(checkShouldStart)
-	}
-}, config.check_interval);
 
+var j = schedule.scheduleJob(config.cron, init);
