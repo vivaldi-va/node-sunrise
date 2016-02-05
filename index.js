@@ -2,6 +2,7 @@
  * Created by Zaccary on 29/09/2015.
  */
 
+"use strict";
 
 var hue = require("node-hue-api");
 var HueApi = hue.HueApi;
@@ -9,6 +10,7 @@ var hueLightState = hue.lightState;
 var chroma = require('chroma-js');
 var moment = require('moment');
 var schedule = require('node-schedule');
+var log = require('log4js').getLogger('rise');
 
 var config = require('./config/env');
 
@@ -56,7 +58,7 @@ function getTempAtTime() {
 function init() {
 	hue.nupnpSearch(function(err, result) {
 		if (err) throw err;
-		console.log("bridges", result);
+		log.info("bridges", result);
 
 		api = new HueApi(result[0].ipaddress, config.user_id);
 		rise();
@@ -87,14 +89,14 @@ function rise() {
 			hue = getColourFromKelvin(intervalTemp);
 			lightState.rgb(hue).bri(brightness);
 
-			console.log("\n");
-			console.log("\n");
-			console.log("time: " + i + " seconds");
-			console.log("temp: " + intervalTemp + "k");
-			console.log("brightness: " + brightness);
-			console.log("light: ", lightState);
+			log.info("\n");
+			log.info("\n");
+			log.info("time: " + i + " seconds");
+			log.info("temp: " + intervalTemp + "k");
+			log.info("brightness: " + brightness);
+			log.info("light: ", lightState);
 
-			for (var l in lightIds) {
+			for (let l in lightIds) {
 				api.setLightState(lightIds[l], lightState, function (err, lights) {
 					if (err) throw err;
 				});
@@ -102,6 +104,7 @@ function rise() {
 
 			if (i >= config.rise_duration) {
 				clearInterval(interval);
+				log.info("Finished rise.");
 			}
 
 			i += 1;
@@ -109,6 +112,17 @@ function rise() {
 	});
 }
 
+(function() {
+	log.info("starting schedule");
 
+	const rule = new schedule.RecurrenceRule();
+	rule.dayOfWeek = [new schedule.Range(0,6)];
+	rule.hour = 9;
+	rule.minute = 45;
 
-var j = schedule.scheduleJob(config.cron, init);
+	log.debug("rule set", rule);
+
+	const j = schedule.scheduleJob(rule, init);
+
+})();
+
