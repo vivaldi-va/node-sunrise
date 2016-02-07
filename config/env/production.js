@@ -14,13 +14,21 @@ module.exports = {
 		"max": 160
 	},
 	"schedule": {
-		"monday": {hour: 7, minute: 30},
-		"tuesday": {hour: 7, minute: 30},
-		"wednesday": {hour: 7, minute: 30},
-		"thursday": {hour: 7, minute: 30},
-		"friday": {hour: 7, minute: 30},
-		"saturday": {hour: 10, minute: 0},
-		"sunday": {hour: 10, minute: 0}
-	},
-	"cron": "30 7 * * 1-5" // mon-fri @ 7:30am
+		"weekday": {
+			dayOfWeek: {
+				start: 1,
+				end: 5
+			},
+			hour: 6,
+			minute: 45
+		},
+		"weekend": {
+			dayOfWeek: {
+				start: 0,
+				end: 6
+			},
+			hour: 10,
+			minute: 0
+		}
+	}
 };

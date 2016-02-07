@@ -4,15 +4,14 @@
 
 "use strict";
 
-var hue = require("node-hue-api");
-var HueApi = hue.HueApi;
+const hue = require("node-hue-api");
+const HueApi = hue.HueApi;
 var hueLightState = hue.lightState;
-var chroma = require('chroma-js');
-var moment = require('moment');
-var schedule = require('node-schedule');
-var log = require('log4js').getLogger('rise');
 
-var config = require('./config/env');
+const chroma = require('chroma-js');
+const schedule = require('node-schedule');
+const log = require('log4js').getLogger('rise');
+const config = require('./config/env');
 
 var api;
 
@@ -56,9 +55,11 @@ function getTempAtTime() {
  * then running `rise()`
  */
 function init() {
+	log.info("searching for Hue bridges");
 	hue.nupnpSearch(function(err, result) {
 		if (err) throw err;
-		log.info("bridges", result);
+
+		log.info("found bridges", result);
 
 		api = new HueApi(result[0].ipaddress, config.user_id);
 		rise();
@@ -97,9 +98,11 @@ function rise() {
 			log.info("light: ", lightState);
 
 			for (let l in lightIds) {
-				api.setLightState(lightIds[l], lightState, function (err, lights) {
-					if (err) throw err;
-				});
+				if(lightIds.hasOwnProperty(l)) {
+					api.setLightState(lightIds[l], lightState, function (err, lights) {
+						if (err) throw err;
+					});
+				}
 			}
 
 			if (i >= config.rise_duration) {
@@ -115,14 +118,33 @@ function rise() {
 (function() {
 	log.info("starting schedule");
 
-	const rule = new schedule.RecurrenceRule();
-	rule.dayOfWeek = [new schedule.Range(0,6)];
-	rule.hour = 9;
-	rule.minute = 45;
+	// Rule for handling weekdays
+	const weekdayRule = new schedule.RecurrenceRule();
+	weekdayRule.dayOfWeek = [
+		new schedule.Range(
+			config.schedule.weekday.dayOfWeek.start,
+			config.schedule.weekday.dayOfWeek.end
+		)];
+	weekdayRule.hour = config.schedule.weekday.hour;
+	weekdayRule.minute = config.schedule.weekday.minute;
 
-	log.debug("rule set", rule);
 
-	const j = schedule.scheduleJob(rule, init);
+	// rule for handling weekends
+	// uses array of days instead of range
+	// as JS starts week on sunday
+	const weekendRule = new schedule.RecurrenceRule();
+	weekendRule.dayOfWeek = [
+		config.schedule.weekend.dayOfWeek.start,
+		config.schedule.weekend.dayOfWeek.end
+	];
+	weekendRule.hour = config.schedule.weekend.hour;
+	weekendRule.minute = config.schedule.weekend.minute;
+
+	log.debug("weekday rule set", weekdayRule);
+	log.debug("weekend rule set", weekendRule);
+
+	const weekday = schedule.scheduleJob(weekdayRule, init);
+	const weekend = schedule.scheduleJob(weekendRule, init);
 
 })();
 
